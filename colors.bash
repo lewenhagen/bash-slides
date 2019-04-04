@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
+# shellcheck disable=SC2034
 black=$(tput setaf 0)
 red=$(tput setaf 1)
 green=$(tput setaf 2)
@@ -15,7 +16,6 @@ ul_on=$(tput smul)
 ul_off=$(tput rmul)
 standout_bold_on=$(tput smso)
 standout_bold_off=$(tput rmso)
-green=$(tput setaf 2)
 
 cols=$(tput cols)
 rows=$(tput lines)

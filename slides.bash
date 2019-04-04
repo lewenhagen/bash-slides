@@ -69,49 +69,64 @@ function slideshow
     local max=${#BODY[@]}
 
     while true; do
-        theslide="${BODY[$current]}"
+        local theslide="${BODY[$current]}"
+        local logo="logo.txt"
         x=$(( _LINES / 6 ))
         y=$(( ( _COLUMNS )  / 6 ))
         tput clear
+        tput sgr0
+        echo -n "$(tput setaf 2)Slide: $(( current+1 ))/$max"
+        echo "$(< $logo)" | PREFIX=$(tput cr; tput cuf $((_COLUMNS-20))) awk '{print ENVIRON["PREFIX"] $0}'
         tput cup $x
-
         echo "$theslide" | PREFIX=$(tput cr; tput cuf $y) awk '{print ENVIRON["PREFIX"] $0}'
+
         read -rsn1 key
 
-        if [[ "$key" = "a" ]]; then
-            (( current = (current - 1)%max ))
-        elif [[ "$key" = "s" ]]; then
-            (( current = (current + 1)%max ))
-        elif [[ "$key" = "q" ]]; then
-            exit 0
-        fi
+        case "$key" in
+            "a")
+                (( current-- ))
+                [[ $current -lt 0 ]] && current=$(( max-1 ))
+            ;;
+            "s")
+                (( current = (current+1)%max ))
+            ;;
+            "q")
+                exit 0
+            ;;
+        esac
     done
 }
 
 
 
-while (( $# ))
-do
-    case "$1" in
+function main
+{
+    while (( $# ))
+    do
+        case "$1" in
 
-        --help | -h)
-            usage
-            exit 0
-        ;;
+            --help | -h)
+                usage
+                exit 0
+            ;;
 
-        --version | -v)
-            echo "$SCRIPT version $VERSION"
-            exit 0
-        ;;
+            --version | -v)
+                echo "$SCRIPT version $VERSION"
+                exit 0
+            ;;
 
-        [1-7])
-            slideshow "$1"
-            exit 0
-        ;;
+            [1-7])
+                slideshow "$1"
+                exit 0
+            ;;
 
-        *)
-            badUsage "Option/command not recognized."
-            exit 1
-        ;;
-    esac
-done
+            *)
+                badUsage "Option/command not recognized."
+                exit 1
+            ;;
+        esac
+    done
+
+}
+
+main "$@"

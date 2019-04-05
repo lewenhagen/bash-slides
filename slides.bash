@@ -56,29 +56,51 @@ function badUsage
 
 
 
+function parseandprint
+{
+    echo "$1" | sed -r "
+    s/(###)([a-Z].*$)/$(tput setaf 5)\2$(tput sgr0)/g
+    s/(##)([a-Z].*$)/$(tput setaf 6)\2$(tput sgr0)/g
+    s/(#)([a-Z].*$)/$(tput setaf 3)\2$(tput sgr0)/g
+    s/(http.*)/$(tput setaf 6)\1$(tput sgr0)/g
+    "
+}
+
+
+
 #
 # Slideshow to present the slides from BODY array
 # Argument: $1 should be 1-7 and give the correct slides
 #
 function slideshow
 {
-    # shellcheck source=slides/1.bash
-    source "slides/$1.bash"
-
+    local textfile
     local current=0
-    local max=${#BODY[@]}
+    local logo="logo.txt"
+    local x y max
+
+    declare -a slides
+
+    x=$(( _LINES / 6 ))
+    y=$(( ( _COLUMNS )  / 6 ))
+
+    IFS="%"
+
+    textfile=$(< "slides/$1.md")
+
+    for slide in $textfile; do
+        slides+=($slide)
+    done
+
+    max=${#slides[@]}
 
     while true; do
-        local theslide="${BODY[$current]}"
-        local logo="logo.txt"
-        x=$(( _LINES / 6 ))
-        y=$(( ( _COLUMNS )  / 6 ))
         tput clear
         tput sgr0
         echo -n "$(tput setaf 2)Slide: $(( current+1 ))/$max"
         echo "$(< $logo)" | PREFIX=$(tput cr; tput cuf $((_COLUMNS-20))) awk '{print ENVIRON["PREFIX"] $0}'
         tput cup $x
-        echo "$theslide" | PREFIX=$(tput cr; tput cuf $y) awk '{print ENVIRON["PREFIX"] $0}'
+        parseandprint "${slides[$current]}" | PREFIX=$(tput cr; tput cuf $y) awk '{print ENVIRON["PREFIX"] $0}'
 
         read -rsn1 key
 

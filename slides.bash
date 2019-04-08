@@ -14,6 +14,19 @@ _COLUMNS=$(tput cols)
 _LINES=$(tput lines)
 
 
+trap clear_md INT
+
+function clear_md
+{
+    if [[ -f "1.md" ]]; then
+        echo ">>> Clearing md-files..."
+        rm -- *.md
+        echo ">>> I'm done! Bye!"
+    else
+        echo ">>> No files to remove..."
+    fi
+    exit 0
+}
 
 #
 # Message to display for usage and help.
@@ -68,6 +81,13 @@ function parseandprint
 
 
 
+function parsemdless
+{
+    mdless less -w 50 "$1"
+}
+
+
+
 #
 # Slideshow to present the slides from BODY array
 # Argument: $1 should be 1-7 and give the correct slides
@@ -85,12 +105,19 @@ function slideshow
     y=$(( ( _COLUMNS )  / 6 ))
 
     IFS="%"
-
     textfile=$(< "slides/$1.md")
-
-    for slide in $textfile; do
-        slides+=($slide)
-    done
+    if ! [[ -z "$2" ]]; then
+        count=0
+        for slide in $textfile; do
+            (( count++ ))
+            echo "$slide" > "$count.md"
+            slides+=($count)
+        done
+    else
+        for slide in $textfile; do
+            slides+=($slide)
+        done
+    fi
 
     max=${#slides[@]}
 
@@ -100,7 +127,9 @@ function slideshow
         echo -n "$(tput setaf 2)Slide: $(( current+1 ))/$max"
         echo "$(< $logo)" | PREFIX=$(tput cr; tput cuf $((_COLUMNS-20))) awk '{print ENVIRON["PREFIX"] $0}'
         tput cup $x
-        parseandprint "${slides[$current]}" | PREFIX=$(tput cr; tput cuf $y) awk '{print ENVIRON["PREFIX"] $0}'
+        if ! [[ -z "$2" ]]; then parsemdless "${slides[$current]}.md" | PREFIX=$(tput cr; tput cuf $y) awk '{print ENVIRON["PREFIX"] $0}'
+        else parseandprint "${slides[$current]}" | PREFIX=$(tput cr; tput cuf $y) awk '{print ENVIRON["PREFIX"] $0}'
+        fi
 
         read -rsn1 key
 
@@ -113,7 +142,7 @@ function slideshow
                 (( current = (current+1)%max ))
             ;;
             "q")
-                exit 0
+                clear_md
             ;;
         esac
     done
@@ -134,6 +163,12 @@ function main
 
             --version | -v)
                 echo "$SCRIPT version $VERSION"
+                exit 0
+            ;;
+
+            pretty)
+                shift
+                slideshow "$1" mdless
                 exit 0
             ;;
 

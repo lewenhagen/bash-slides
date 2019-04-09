@@ -68,18 +68,80 @@ function badUsage
 }
 
 
-
-function parseandprint
+function parseHeaders
 {
     echo "$1" | sed -r "
     s/(###)([a-Z].*$)/$(tput setaf 5)\2$(tput sgr0)/g
     s/(##)([a-Z].*$)/$(tput setaf 6)\2$(tput sgr0)/g
     s/(#)([a-Z].*$)/$(tput setaf 3)\2$(tput sgr0)/g
+    "
+}
+
+
+
+function parseLinks
+{
+    echo "$1" | sed -r "
     s/(http.*)/$(tput setaf 6)\1$(tput sgr0)/g
     "
 }
 
 
+
+function parseCode
+{
+    # codeline="-------------- $(tput setaf 6)kodexempel$(tput sgr0) --------------\n"
+    # codeline_end="\n----------------------------------------\n"
+    code_only=$(echo "$1" | awk "/\`\`\`bash/,/\`\`\`\n/" | grep -v "\`\`\`bash" | grep -v "\`\`\`")
+    # code_only=$(parseCode "$code_only")
+    # echo "$code_only"
+    # IFS_BU="$IFS"
+    # IFS=$" "
+    # code_only=
+    # for item in $code_only; do
+    #
+    # done
+
+    echo "$code_only" | sed -r "
+    s/(for|function|local|if|then|else|fi|do|done|esac|case|while|in\s)/$(tput setaf 5)\1$(tput sgr0)/g
+    s/(\"[a-Z].*\")/$(tput setaf 2)\1$(tput sgr0)/g
+    s/([\$][a-Z].+?)/$(tput setaf 2)\1$(tput setaf 1)\2$(tput setaf 2)\3$(tput sgr0)/g
+
+    "
+}
+
+
+
+function parseCodeblock
+{
+    codeline="-------------- $(tput setaf 6)kodexempel$(tput sgr0) --------------\n"
+    codeline_end="\n----------------------------------------\n"
+    # code_only=$(echo "$1" | awk "/\`\`\`bash/,/\`\`\`\n/" | grep -v "\`\`\`bash" | grep -v "\`\`\`")
+    # code_only=$(parseCode "$code_only")
+
+    parsed=$(echo "$1" | awk "{gsub(/\`\`\`bash/,\"$codeline\")}1" | awk "{gsub(/\`\`\`/,\"$codeline_end\")}1")
+
+    # parsed_code=$(echo $codeline $code_only $codeline_end)
+    echo "$parsed"
+    #sed -n "/^\`{3}bash/,/\`{3}\n/p"
+}
+
+
+
+function parseandprint
+{
+    parsed=""
+    parsed=$(parseHeaders "$1")
+    parsed=$(parseLinks "$parsed")
+    test=$(parseCode "$parsed")
+    parsed=$(parseCodeblock "$parsed")
+    echo "$test"
+    echo "$parsed"
+}
+# ([a-Z].*)(\`\`\`)/sub/g
+# (^\`\{3\})
+# s/(^\`\`\`[a-Z].*$)(,)\`\`\`/$codeline$(tput setaf 6)\2$codeline/g
+# s/^(\`{3}[a-Z].*)(\`{3})/$codeline\n/g
 
 function parsemdless
 {

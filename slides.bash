@@ -13,6 +13,8 @@ SCRIPT=$( basename "$0" )
 _COLUMNS=$(tput cols)
 _LINES=$(tput lines)
 
+codeline="$(tput sgr0)-------------- $(tput setaf 3)START$(tput sgr0) --------------\n"
+codeline_end="$(tput sgr0)--------------- $(tput setaf 3)END$(tput sgr0) ---------------\n"
 
 trap clear_md INT
 
@@ -70,10 +72,13 @@ function badUsage
 
 function parseHeaders
 {
+    # PREFIX=$(tput cr; tput cuf $((_COLUMNS-20))) awk '{print ENVIRON["PREFIX"] $0}'
     echo "$1" | sed -r "
     s/(###)([a-Z].*$)/$(tput setaf 5)\2$(tput sgr0)/g
     s/(##)([a-Z].*$)/$(tput setaf 6)\2$(tput sgr0)/g
     s/(#)([a-Z].*$)/$(tput setaf 3)\2$(tput sgr0)/g
+    s/(^[\>]\s*.*)$/$(tput sgr0)$(tput dim)\1$(tput sgr0)/g
+
     "
 }
 
@@ -90,23 +95,18 @@ function parseLinks
 
 function parseCode
 {
-    # codeline="-------------- $(tput setaf 6)kodexempel$(tput sgr0) --------------\n"
-    # codeline_end="\n----------------------------------------\n"
-    code_only=$(echo "$1" | awk "/\`\`\`bash/,/\`\`\`\n/" | grep -v "\`\`\`bash" | grep -v "\`\`\`")
-    # code_only=$(parseCode "$code_only")
-    # echo "$code_only"
-    # IFS_BU="$IFS"
-    # IFS=$" "
-    # code_only=
-    # for item in $code_only; do
-    #
-    # done
+    code_only=$(echo "$1" | sed "/\`\`\`bash/,/\`\`\`/!d;//d")
 
     echo "$code_only" | sed -r "
+    s/(^#\s*.*)$/$(tput sgr0)$(tput dim)\1$(tput sgr0)/g
     s/(for|function|local|if|then|else|fi|do|done|esac|case|while|in\s)/$(tput setaf 5)\1$(tput sgr0)/g
-    s/(\"[a-Z].*\")/$(tput setaf 2)\1$(tput sgr0)/g
-    s/([\$][a-Z].+?)/$(tput setaf 2)\1$(tput setaf 1)\2$(tput setaf 2)\3$(tput sgr0)/g
-
+    s/(echo|printf|shift|exit)/$(tput setaf 6)\1$(tput sgr0)/g
+    s/([\"].*[\"])/$(tput setaf 2)\1$(tput sgr0)/g
+    s/([\"])([\$][a-Z]+)([\"])/$(tput setaf 2)\1$(tput setaf 1)\2$(tput setaf 2)\3$(tput sgr0)/g
+    s/(\s[\\$][a-Z]+$)/$(tput setaf 1)\1$(tput sgr0)/g
+    s/(\")([\$][a-Z]+)([\:])([\$][a-Z]+)([\/][a-Z].*[\"])/\1$(tput setaf 1)\2$(tput setaf 2)\3$(tput setaf 1)\4$(tput setaf 2)\5$(tput sgr0)/g
+    s/(\")([\$][a-Z0-9]+)(\")/$(tput setaf 2)\1$(tput setaf 1)\2$(tput setaf 2)\3$(tput sgr0)/g
+    s/(^function)/hej/g
     "
 }
 
@@ -114,18 +114,20 @@ function parseCode
 
 function parseCodeblock
 {
-    codeline="-------------- $(tput setaf 6)kodexempel$(tput sgr0) --------------\n"
-    codeline_end="\n----------------------------------------\n"
-    # code_only=$(echo "$1" | awk "/\`\`\`bash/,/\`\`\`\n/" | grep -v "\`\`\`bash" | grep -v "\`\`\`")
-    # code_only=$(parseCode "$code_only")
-
     parsed=$(echo "$1" | awk "{gsub(/\`\`\`bash/,\"$codeline\")}1" | awk "{gsub(/\`\`\`/,\"$codeline_end\")}1")
 
-    # parsed_code=$(echo $codeline $code_only $codeline_end)
     echo "$parsed"
-    #sed -n "/^\`{3}bash/,/\`{3}\n/p"
 }
 
+function replaceCode
+{
+    before_code=$(echo "$1" | awk '1;/START/{exit}')
+    after_code=$(echo "$1" | awk '/END/,EOF {print $0}')
+    echo "$before_code"
+    echo "$2"
+    echo ""
+    echo "$after_code"
+}
 
 
 function parseandprint
@@ -135,13 +137,11 @@ function parseandprint
     parsed=$(parseLinks "$parsed")
     test=$(parseCode "$parsed")
     parsed=$(parseCodeblock "$parsed")
-    echo "$test"
+    parsed=$(replaceCode "$parsed" "$test")
     echo "$parsed"
 }
-# ([a-Z].*)(\`\`\`)/sub/g
-# (^\`\{3\})
-# s/(^\`\`\`[a-Z].*$)(,)\`\`\`/$codeline$(tput setaf 6)\2$codeline/g
-# s/^(\`{3}[a-Z].*)(\`{3})/$codeline\n/g
+
+
 
 function parsemdless
 {

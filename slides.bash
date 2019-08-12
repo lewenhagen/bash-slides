@@ -40,12 +40,11 @@ function usage
 "Usage: $SCRIPT [options] <command> [arguments]"
 ""
 "Command:"
-"  <0-7>                Coursepart/folder"
+"  <0-7>                Coursepart/file"
 ""
 "Options:"
 "  --help, -h     Print help."
 "  --version, -v  Print version."
-"  --export       Creates .pdf from selected course part"
     )
 
     printf "%s\n" "${txt[@]}"
